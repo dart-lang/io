@@ -23,7 +23,7 @@ An enum-type class that contains known exit codes.
 
 A higher-level service for spawning and communicating with processes.
 
-##### Use `spawn` to create a process similar to how a bash/shell script would:
+##### Use `spawn` to create a process with std[in|out|err] forwarded by default
 
 ```dart
 /// Runs `dartfmt` commands and `pub publish`.
