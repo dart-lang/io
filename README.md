@@ -2,6 +2,8 @@
 
 Contains utilities for the Dart VM's `dart:io`.
 
+[![Build Status](https://travis-ci.org/dart-lang/io.svg?branch=master)](https://travis-ci.org/dart-lang/io)
+
 ## Usage
 
 ### Files
