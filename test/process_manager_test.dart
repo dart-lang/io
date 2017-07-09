@@ -66,7 +66,7 @@ void main() {
       await spawn.exitCode;
       // TODO: https://github.com/dart-lang/sdk/issues/30119.
       // expect(stdoutLog, ['You said: Ping', '\n']);
-      expect(stdoutLog, contains('You said: Ping'));
+      expect(stdoutLog.join(''), contains('You said: Ping'));
     });
   });
 }
