@@ -5,20 +5,9 @@
 import 'dart:async';
 import 'dart:io' as io;
 
-import 'package:async/async.dart';
 import 'package:meta/meta.dart';
 
-/// A global StreamQueue for `stdin`.
-///
-/// This allows different spawned processes to share the same listener to stdin
-/// without dropping data on the floor, assuming there is only a single spawned
-/// process using stdin at a time.
-StreamQueue<List<int>> get _stdInAsQueue {
-  // TODO: It would be beneficial to have a locking/release mechanism for this.
-  return _stdInQueue ??= new StreamQueue<List<int>>(io.stdin);
-}
-
-StreamQueue<List<int>> _stdInQueue;
+import 'shared_stdin.dart';
 
 /// A high-level abstraction around using and managing processes on the system.
 abstract class ProcessManager {
@@ -26,22 +15,34 @@ abstract class ProcessManager {
   ///
   /// This method should be invoked only at the _end_ of a program's execution.
   static Future<Null> terminateStdIn() async {
-    await _stdInQueue?.cancel(immediate: true);
+    await sharedStdIn.terminate();
   }
 
   /// Create a new instance of [ProcessManager] for the current platform.
   ///
   /// May manually specify whether the current platform [isWindows], otherwise
   /// this is derived from the Dart runtime (i.e. [io.Platform.isWindows]).
-  factory ProcessManager({bool isWindows}) {
-    if (isWindows ?? io.Platform.isWindows) {
-      return const _WindowsProcessManager();
+  factory ProcessManager({
+    Stream<List<int>> stdin,
+    io.IOSink stdout,
+    io.IOSink stderr,
+    bool isWindows,
+  }) {
+    stdin ??= sharedStdIn;
+    stdout ??= io.stdout;
+    stderr ??= io.stderr;
+    isWindows ??= io.Platform.isWindows;
+    if (isWindows) {
+      return new _WindowsProcessManager(stdin, stdout, stderr);
     }
-    return const _UnixProcessManager();
+    return new _UnixProcessManager(stdin, stdout, stderr);
   }
 
-  /// Prevents sub-classing until this class is stable.
-  const ProcessManager._();
+  final Stream<List<int>> _stdin;
+  final io.IOSink _stdout;
+  final io.IOSink _stderr;
+
+  const ProcessManager._(this._stdin, this._stdout, this._stderr);
 
   /// Spawns a process by invoking [executable] with [arguments].
   ///
@@ -55,7 +56,7 @@ abstract class ProcessManager {
     Iterable<String> arguments: const [],
   }) async {
     final process = io.Process.start(executable, arguments.toList());
-    return new _ForwardingSpawn(await process);
+    return new _ForwardingSpawn(await process, _stdin, _stdout, _stderr);
   }
 }
 
@@ -68,17 +69,13 @@ abstract class ProcessManager {
 class Spawn implements io.Process {
   final io.Process _delegate;
 
-  bool _isClosed = false;
-
   Spawn._(this._delegate) {
     _delegate.exitCode.then((_) => _onClosed());
   }
 
   @mustCallSuper
   @visibleForOverriding
-  void _onClosed() {
-    _isClosed = true;
-  }
+  void _onClosed() {}
 
   @override
   bool kill([io.ProcessSignal signal = io.ProcessSignal.SIGTERM]) =>
@@ -102,14 +99,22 @@ class Spawn implements io.Process {
 
 /// Forwards `stdin`/`stdout`/`stderr` to/from the host.
 class _ForwardingSpawn extends Spawn {
+  final StreamSubscription _stdInSub;
   final StreamSubscription _stdOutSub;
   final StreamSubscription _stdErrSub;
 
-  factory _ForwardingSpawn(io.Process delegate) {
-    final stdOutSub = delegate.stdout.listen(io.stdout.add);
-    final stdErrSub = delegate.stderr.listen(io.stdout.add);
+  factory _ForwardingSpawn(
+    io.Process delegate,
+    Stream<List<int>> stdin,
+    io.IOSink stdout,
+    io.IOSink stderr,
+  ) {
+    final stdInSub = stdin.listen(delegate.stdin.add);
+    final stdOutSub = delegate.stdout.listen(stdout.add);
+    final stdErrSub = delegate.stderr.listen(stderr.add);
     return new _ForwardingSpawn._delegate(
       delegate,
+      stdInSub,
       stdOutSub,
       stdErrSub,
     );
@@ -117,19 +122,15 @@ class _ForwardingSpawn extends Spawn {
 
   _ForwardingSpawn._delegate(
     io.Process delegate,
+    this._stdInSub,
     this._stdOutSub,
     this._stdErrSub,
   )
-      : super._(delegate) {
-    scheduleMicrotask(() async {
-      while (!_isClosed && await _stdInAsQueue.hasNext) {
-        delegate.stdin.add(await _stdInAsQueue.next);
-      }
-    });
-  }
+      : super._(delegate);
 
   @override
   void _onClosed() {
+    _stdInSub.cancel();
     _stdOutSub.cancel();
     _stdErrSub.cancel();
     super._onClosed();
@@ -137,9 +138,27 @@ class _ForwardingSpawn extends Spawn {
 }
 
 class _UnixProcessManager extends ProcessManager {
-  const _UnixProcessManager() : super._();
+  const _UnixProcessManager(
+    Stream<List<int>> stdin,
+    io.IOSink stdout,
+    io.IOSink stderr,
+  )
+      : super._(
+          stdin,
+          stdout,
+          stderr,
+        );
 }
 
 class _WindowsProcessManager extends ProcessManager {
-  const _WindowsProcessManager() : super._();
+  const _WindowsProcessManager(
+    Stream<List<int>> stdin,
+    io.IOSink stdout,
+    io.IOSink stderr,
+  )
+      : super._(
+          stdin,
+          stdout,
+          stderr,
+        );
 }
