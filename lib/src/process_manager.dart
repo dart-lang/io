@@ -48,7 +48,7 @@ abstract class ProcessManager {
   ///
   /// This is _similar_ to [io.Process.start], but all standard input and output
   /// is forwarded/routed between the process and the host, similar to how a
-  /// bash or shell script works.
+  /// shell script works.
   ///
   /// Returns a future that completes with a handle to the spawned process.
   Future<io.Process> spawn(
@@ -63,9 +63,7 @@ abstract class ProcessManager {
 /// A process instance created and managed through [ProcessManager].
 ///
 /// Unlike one created directly by [io.Process.start] or [io.Process.run], a
-/// spawned process works more like executing a command in a shell or bash
-/// script, where stdin/out/err are bound together with the host process until
-/// complete.
+/// spawned process works more like executing a command in a shell script.
 class Spawn implements io.Process {
   final io.Process _delegate;
 
