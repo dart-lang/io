@@ -5,3 +5,4 @@
    - `ExitCode`
    - `ProcessManager` and `Spawn`
    - `sharedStdIn` and `SharedStdIn`
+   - `AnsiCode` and `AnsiCodeType`
