@@ -5,4 +5,4 @@
    - `ExitCode`
    - `ProcessManager` and `Spawn`
    - `sharedStdIn` and `SharedStdIn`
-   - `AnsiCode` and `AnsiCodeType`
+   - `ansi.dart` library with support for formatting terminal output
