@@ -16,6 +16,9 @@ processManager.spawn('dart', ['--version']);
 
 - Added `ProcessManager#spawnDetached`, which does not forward any I/O.
 
+- Added `homePath` and `appDataPath(path)`, utilities for getting special
+  directories on different operating systems.
+
 ## 0.2.0
 
 - Initial commit of...
