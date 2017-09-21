@@ -38,38 +38,6 @@ abstract class ProcessManager {
     return new _UnixProcessManager(stdin, stdout, stderr);
   }
 
-  /// Create a new instance of [ProcessManager] for the current platform.
-  ///
-  /// May manually specify whether the current platform [isWindows], otherwise
-  /// this is derived from the Dart runtime (i.e. [io.Platform.isWindows]).
-  ///
-  /// The `stdin` stream does _not_ forward on [spawn].
-  factory ProcessManager.background({
-    io.IOSink stdout,
-    io.IOSink stderr,
-    bool isWindows,
-  }) {
-    return new ProcessManager(
-      stdin: const Stream.empty(),
-      isWindows: isWindows,
-    );
-  }
-
-  /// Create a new instance of [ProcessManager] for the current platform.
-  ///
-  /// May manually specify whether the current platform [isWindows], otherwise
-  /// this is derived from the Dart runtime (i.e. [io.Platform.isWindows]).
-  ///
-  /// Standard streams I/O (stdin, stdout, stderr) are not forwarded on [spawn].
-  factory ProcessManager.headless({bool isWindows}) {
-    return new ProcessManager(
-      stdin: const Stream.empty(),
-      stdout: new io.IOSink(const _NullStreamConsumer()),
-      stderr: new io.IOSink(const _NullStreamConsumer()),
-      isWindows: isWindows,
-    );
-  }
-
   final Stream<List<int>> _stdin;
   final io.IOSink _stdout;
   final io.IOSink _stderr;
@@ -84,22 +52,44 @@ abstract class ProcessManager {
   ///
   /// Returns a future that completes with a handle to the spawned process.
   Future<io.Process> spawn(
-    String executable, {
-    Iterable<String> arguments: const [],
-  }) async {
+    String executable,
+    Iterable<String> arguments,
+  ) async {
     final process = io.Process.start(executable, arguments.toList());
     return new _ForwardingSpawn(await process, _stdin, _stdout, _stderr);
   }
-}
 
-class _NullStreamConsumer<T> implements StreamConsumer<T> {
-  const _NullStreamConsumer();
+  /// Spawns a process by invoking [executable] with [arguments].
+  ///
+  /// This is _similar_ to [io.Process.start], but `stdout` and `stderr` is
+  /// forwarded/routed between the process and host, similar to how a shell
+  /// script works.
+  ///
+  /// Returns a future that completes with a handle to the spawned process.
+  Future<io.Process> spawnBackground(
+    String executable,
+    Iterable<String> arguments,
+  ) async {
+    final process = io.Process.start(executable, arguments.toList());
+    return new _ForwardingSpawn(
+      await process,
+      const Stream.empty(),
+      _stdout,
+      _stderr,
+    );
+  }
 
-  @override
-  Future addStream(Stream<T> stream) => new Future<dynamic>.value();
-
-  @override
-  Future close() => new Future<dynamic>.value();
+  /// Spawns a process by invoking [executable] with [arguments].
+  ///
+  /// This is _identical to [io.Process.start] (no forwarding of I/O).
+  ///
+  /// Returns a future that completes with a handle to the spawned process.
+  Future<io.Process> spawnDetached(
+    String executable,
+    Iterable<String> arguments,
+  ) async {
+    return io.Process.start(executable, arguments.toList());
+  }
 }
 
 /// A process instance created and managed through [ProcessManager].
