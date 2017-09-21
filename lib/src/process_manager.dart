@@ -38,6 +38,38 @@ abstract class ProcessManager {
     return new _UnixProcessManager(stdin, stdout, stderr);
   }
 
+  /// Create a new instance of [ProcessManager] for the current platform.
+  ///
+  /// May manually specify whether the current platform [isWindows], otherwise
+  /// this is derived from the Dart runtime (i.e. [io.Platform.isWindows]).
+  ///
+  /// The `stdin` stream does _not_ forward on [spawn].
+  factory ProcessManager.background({
+    io.IOSink stdout,
+    io.IOSink stderr,
+    bool isWindows,
+  }) {
+    return new ProcessManager(
+      stdin: const Stream.empty(),
+      isWindows: isWindows,
+    );
+  }
+
+  /// Create a new instance of [ProcessManager] for the current platform.
+  ///
+  /// May manually specify whether the current platform [isWindows], otherwise
+  /// this is derived from the Dart runtime (i.e. [io.Platform.isWindows]).
+  ///
+  /// Standard streams I/O (stdin, stdout, stderr) are not forwarded on [spawn].
+  factory ProcessManager.headless({bool isWindows}) {
+    return new ProcessManager(
+      stdin: const Stream.empty(),
+      stdout: new io.IOSink(const _NullStreamConsumer()),
+      stderr: new io.IOSink(const _NullStreamConsumer()),
+      isWindows: isWindows,
+    );
+  }
+
   final Stream<List<int>> _stdin;
   final io.IOSink _stdout;
   final io.IOSink _stderr;
@@ -58,6 +90,16 @@ abstract class ProcessManager {
     final process = io.Process.start(executable, arguments.toList());
     return new _ForwardingSpawn(await process, _stdin, _stdout, _stderr);
   }
+}
+
+class _NullStreamConsumer<T> implements StreamConsumer<T> {
+  const _NullStreamConsumer();
+
+  @override
+  Future addStream(Stream<T> stream) => new Future<dynamic>.value();
+
+  @override
+  Future close() => new Future<dynamic>.value();
 }
 
 /// A process instance created and managed through [ProcessManager].
@@ -99,6 +141,8 @@ class _ForwardingSpawn extends Spawn {
   final StreamSubscription _stdInSub;
   final StreamSubscription _stdOutSub;
   final StreamSubscription _stdErrSub;
+  final StreamController<List<int>> _stdOut;
+  final StreamController<List<int>> _stdErr;
 
   factory _ForwardingSpawn(
     io.Process delegate,
@@ -106,14 +150,24 @@ class _ForwardingSpawn extends Spawn {
     io.IOSink stdout,
     io.IOSink stderr,
   ) {
+    final stdoutSelf = new StreamController<List<int>>();
+    final stderrSelf = new StreamController<List<int>>();
     final stdInSub = stdin.listen(delegate.stdin.add);
-    final stdOutSub = delegate.stdout.listen(stdout.add);
-    final stdErrSub = delegate.stderr.listen(stderr.add);
+    final stdOutSub = delegate.stdout.listen((event) {
+      stdout.add(event);
+      stdoutSelf.add(event);
+    });
+    final stdErrSub = delegate.stderr.listen((event) {
+      stderr.add(event);
+      stderrSelf.add(event);
+    });
     return new _ForwardingSpawn._delegate(
       delegate,
       stdInSub,
       stdOutSub,
       stdErrSub,
+      stdoutSelf,
+      stderrSelf,
     );
   }
 
@@ -122,6 +176,8 @@ class _ForwardingSpawn extends Spawn {
     this._stdInSub,
     this._stdOutSub,
     this._stdErrSub,
+    this._stdOut,
+    this._stdErr,
   )
       : super._(delegate);
 
@@ -132,6 +188,12 @@ class _ForwardingSpawn extends Spawn {
     _stdErrSub.cancel();
     super._onClosed();
   }
+
+  @override
+  Stream<List<int>> get stdout => _stdOut.stream;
+
+  @override
+  Stream<List<int>> get stderr => _stdErr.stream;
 }
 
 class _UnixProcessManager extends ProcessManager {
