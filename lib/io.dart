@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 export 'src/exit_code.dart' show ExitCode;
+export 'src/home_directory.dart' show appDataPath, homePath;
 export 'src/permissions.dart' show isExecutable;
 export 'src/process_manager.dart' show ProcessManager, Spawn;
 export 'src/shared_stdin.dart' show SharedStdIn, sharedStdIn;
