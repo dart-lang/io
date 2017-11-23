@@ -22,12 +22,26 @@ void main() {
     copyPathSync(p.join(d.sandbox, 'parent'), p.join(d.sandbox, 'copy'));
     await _validate();
   });
+
+  test('should catch an infinite operation', () async {
+    await _create();
+    expect(
+      copyPath(
+        p.join(d.sandbox, 'parent'),
+        p.join(d.sandbox, 'parent', 'child'),
+      ),
+      throwsArgumentError,
+    );
+  });
 }
 
-d.DirectoryDescriptor _struct() => d.dir('parent', [
-      d.dir('child', [
-        d.file('foo.txt'),
-      ]),
-    ]);
+d.DirectoryDescriptor _struct() {
+  return d.dir('parent', [
+    d.dir('child', [
+      d.file('foo.txt'),
+    ]),
+  ]);
+}
+
 Future _create() => _struct().create();
 Future _validate() => _struct().validate();
