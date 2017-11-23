@@ -18,6 +18,10 @@ main() async {
 
 - Added a dependency on `package:path`.
 
+- Added the remaining missing arguments to `ProcessManager.spawnX` which
+  forward to `Process.start`. It is now an interchangeable function for running
+  a process.
+
 ## 0.3.0
 
 - **BREAKING CHANGE**: The `arguments` argument to `ProcessManager.spawn` is
