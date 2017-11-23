@@ -14,6 +14,10 @@ main() async {
 }
 ```
 
+- Added a `copyPath` and `copyPathSync` function, similar to `cp -R`.
+
+- Added a dependency on `package:path`.
+
 ## 0.3.0
 
 - **BREAKING CHANGE**: The `arguments` argument to `ProcessManager.spawn` is
