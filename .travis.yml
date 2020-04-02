@@ -21,7 +21,7 @@ matrix:
 
 # Only building master means that we don't run two builds for each pull request.
 branches:
-  only: [master]
+  only: [master,test_all_oses]
 
 cache:
  directories:
