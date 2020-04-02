@@ -4,6 +4,11 @@ dart:
   - 2.0.0
   - dev
 
+os:
+  - linux
+  - osx
+  - windows
+
 dart_task:
   - test
   - dartanalyzer: --fatal-warnings --fatal-lints .
