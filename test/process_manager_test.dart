@@ -76,7 +76,7 @@ void main() {
       );
       spawn.stdin.writeln('Ping');
       await spawn.exitCode;
-      expect(stdoutLog.join(''), contains('You said: Ping'));
+      expect(stdoutLog.join(), contains('You said: Ping'));
     });
 
     group('should return a Process where', () {

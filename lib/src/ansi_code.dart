@@ -81,9 +81,8 @@ class AnsiCode {
   /// Represents the value as an unescaped literal suitable for scripts.
   String get escapeForScript => '$_ansiEscapeForScript[${code}m';
 
-  String _escapeValue({bool forScript = false}) {
-    return forScript ? escapeForScript : escape;
-  }
+  String _escapeValue({bool forScript = false}) =>
+      forScript ? escapeForScript : escape;
 
   /// Wraps [value] with the [escape] value for this code, followed by
   /// [resetAll].
