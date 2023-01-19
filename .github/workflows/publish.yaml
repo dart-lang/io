@@ -10,5 +10,5 @@ on:
 
 jobs:
   publish:
-    if: ${{ github.repository_owner == dart-lang }}
+    if: ${{ github.repository_owner == 'dart-lang' }}
     uses: devoncarew/firehose/.github/workflows/publish.yaml@main
