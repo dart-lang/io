@@ -1,6 +1,7 @@
 ## 1.0.5-wip
 
 * Require Dart 3.0.
+* `copyPath`/`copyPathSync`: expose parameter `followLinks`.
 
 ## 1.0.4
 
